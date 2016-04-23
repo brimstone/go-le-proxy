@@ -27,10 +27,10 @@ func defaultEnvString(envvar string, d string, required bool) string {
 			log.Fatalln(envvar, "must be set")
 		}
 	} else {
-		return d
+		return value
 	}
 
-	return value
+	return d
 }
 
 func main() {
