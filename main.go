@@ -45,7 +45,7 @@ func main() {
 	}
 
 	// check port
-	port := defaultEnvString("PORT", ":443", false)
+	port := ":" + defaultEnvString("PORT", "443", false)
 
 	// ACME server
 	// TODO finish this
@@ -67,7 +67,7 @@ func main() {
 	acmedomains := []string{baseDomain}
 	gettingCertsMsg := "Getting certs for: " + baseDomain
 	for _, env := range os.Environ() {
-		if env[0:6] != "PROXY_" {
+		if len(env) < 6 || env[0:6] != "PROXY_" {
 			continue
 		}
 		proxyenv := env[6:]
@@ -123,7 +123,7 @@ func main() {
 
 	// let's do it
 
-	log.Printf("Now listening on :8443\n")
+	log.Printf("Now listening on %s\n", port)
 
 	http.HandleFunc("/", handler(proxies))
 	err = http.Serve(ln, nil)
