@@ -2,6 +2,8 @@ FROM scratch
 
 EXPOSE 443/tcp
 
+VOLUME /certs
+
 ENV BASE_DOMAIN="" \
     LE_PK="" \
     LE_REG="" \
@@ -11,7 +13,7 @@ ENV BASE_DOMAIN="" \
     TLSCERT="/certs/cert.pem" \
     TLSKEY="/certs/key.pem"
 
-VOLUME /certs
+COPY identtrust.root.pem /etc/ssl/certs/ca-certificates.crt
 
 COPY go-le-proxy /go-le-proxy
 
