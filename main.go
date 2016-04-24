@@ -33,6 +33,36 @@ func defaultEnvString(envvar string, d string, required bool) string {
 	return d
 }
 
+// bulk copy from httputil source
+func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
+	targetQuery := target.RawQuery
+	director := func(req *http.Request) {
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
+		if targetQuery == "" || req.URL.RawQuery == "" {
+			req.URL.RawQuery = targetQuery + req.URL.RawQuery
+		} else {
+			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+		}
+	}
+	return &httputil.ReverseProxy{Director: director}
+}
+
+func singleJoiningSlash(a, b string) string {
+	aslash := strings.HasSuffix(a, "/")
+	bslash := strings.HasPrefix(b, "/")
+	switch {
+	case aslash && bslash:
+		return a + b[1:]
+	case !aslash && !bslash:
+		return a + "/" + b
+	}
+	return a + b
+}
+
+// end bulk copy
+
 func main() {
 	var err error
 	// Check our variables
@@ -168,6 +198,7 @@ func handler(proxies []Proxy) func(http.ResponseWriter, *http.Request) {
 			if r.RequestURI == pathless {
 				continue
 			}
+			// TODO use singleJoiningSlash
 			r.URL, err = url.Parse(proxy.RemoteURL.String() + pathless)
 			if err != nil {
 				panic(err)
