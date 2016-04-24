@@ -18,3 +18,19 @@ This will start a container listening on 443, ready to handle requests for
 example.com and subdomain.example.com. Requests to example.com will be served
 out of /www. Requests to https://subdomain.example.com and
 https://example.com/subdmain will proxy through to http://10.0.0.2:8080.
+
+
+Environment variables:
+----------------------
+
+Variable        |Required|Default|Description
+----------------|--------|-------|-----------
+BASE_DOMAIN     |yes     |       |Base domain to use for registering
+LE_PK           |no      |       |File for Let's Encrypt private key
+LE_REG          |no      |       |File for Let's Encrypt registration
+PORT            |no      |443    |Port to listen on. Address is assumed all
+STAGING         |no      |false  |Use the Let's Encrypt staging server
+SUBDOMAIN_SUFFIX|no      |       |Use to suffix your subdomains. subdomain.suffix.base_domain
+TLSCERT         |no      |       |File for TLS cert. Docker default is `/certs/cert.pem`
+TLSKEY          |no      |       |File for TLS key. Docker default is `/certs/key.pem`
+
