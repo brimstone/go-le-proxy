@@ -9,9 +9,13 @@ Usage:
 ------
 Start it straight, or with docker:
 ```
-docker run --rm -it -p 443:443 -e BASE_DOMAIN=example.com \
--e PROXY_subdomain=http://10.0.0.2:8080 -v $PWD/www:/www:ro -w /www
-brimstone/go-le-proxy
+docker run --rm -it \
+	-p 443:443 \
+	-e BASE_DOMAIN=example.com \
+	-e PROXY_subdomain=http://10.0.0.2:8080 \
+	-v $PWD/www:/www:ro \
+	-w /www \
+	brimstone/go-le-proxy
 ```
 
 This will start a container listening on 443, ready to handle requests for 
