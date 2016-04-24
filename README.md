@@ -38,3 +38,8 @@ SUBDOMAIN_SUFFIX|no      |       |Use to suffix your subdomains. subdomain.suffi
 TLSCERT         |no      |       |File for TLS cert. Docker default is `/certs/cert.pem`
 TLSKEY          |no      |       |File for TLS key. Docker default is `/certs/key.pem`
 
+Variables prefixed with `PROXY_` control the subdomains for the proxy. The value
+should be the base URL used for the target of the proxy. If the proxy target
+starts with a `!`, then that subdomain target is only made available as a
+directory off the base domain and not as a subdomain. This is useful when a DNS
+entry is not setup for that subdomain.

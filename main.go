@@ -75,22 +75,26 @@ func main() {
 
 		newproxy := Proxy{}
 		newproxy.Path = strings.ToLower(proxybits[0])
+		newproxy.Subdomain = newproxy.Path + "." + subdomainSuffix + baseDomain
+
+		if proxybits[1][0:1] == "!" {
+			proxybits[1] = proxybits[1][1:]
+		} else {
+			log.Printf("Adding a handler for %s(%s) to %s\n",
+				newproxy.Path,
+				newproxy.Subdomain,
+				proxybits[1])
+			acmedomains = append(acmedomains, newproxy.Subdomain)
+			gettingCertsMsg = gettingCertsMsg + ", " + newproxy.Subdomain
+		}
 		newproxy.RemoteURL, err = url.Parse(proxybits[1])
 		if err != nil {
 			panic(err)
 		}
 		newproxy.ProxyHandler = httputil.
 			NewSingleHostReverseProxy(newproxy.RemoteURL)
-		newproxy.Subdomain = newproxy.Path + "." + subdomainSuffix + baseDomain
+
 		proxies = append(proxies, newproxy)
-
-		log.Printf("Adding a handler for %s(%s) to %s\n",
-			newproxy.Path,
-			newproxy.Subdomain,
-			proxybits[1])
-		acmedomains = append(acmedomains, newproxy.Subdomain)
-		gettingCertsMsg = gettingCertsMsg + ", " + newproxy.Subdomain
-
 	}
 	log.Println(gettingCertsMsg)
 
