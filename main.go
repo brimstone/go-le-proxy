@@ -34,6 +34,8 @@ func defaultEnvString(envvar string, d string, required bool) string {
 }
 
 // bulk copy from httputil source
+
+// NewSingleHostReverseProxy returns a new ReverseProxy to a single host
 func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	targetQuery := target.RawQuery
 	director := func(req *http.Request) {
@@ -46,7 +48,14 @@ func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
 		}
 	}
-	return &httputil.ReverseProxy{Director: director}
+	// We don't care about tls on the inside
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	return &httputil.ReverseProxy{
+		Director:  director,
+		Transport: transport,
+	}
 }
 
 func singleJoiningSlash(a, b string) string {
