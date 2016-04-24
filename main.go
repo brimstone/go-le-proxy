@@ -87,13 +87,12 @@ func main() {
 	port := ":" + defaultEnvString("PORT", "443", false)
 
 	// ACME server
-	// TODO finish this
 	staging := defaultEnvString("STAGING", "false", false)
 	acmeServer := "https://acme-v01.api.letsencrypt.org/directory"
 	if staging == "true" {
 		acmeServer = "https://acme-staging.api.letsencrypt.org/directory"
 	}
-	// TODO Setup variables for the cert and whatnot
+	// Setup variables for the cert and whatnot
 	tlscert := defaultEnvString("TLSCERT", "", false)
 	tlskey := defaultEnvString("TLSKEY", "", false)
 	registration := defaultEnvString("LE_REG", "", false)
