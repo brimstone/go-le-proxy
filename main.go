@@ -129,8 +129,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		newproxy.ProxyHandler = httputil.
-			NewSingleHostReverseProxy(newproxy.RemoteURL)
+		newproxy.ProxyHandler = NewSingleHostReverseProxy(newproxy.RemoteURL)
 
 		proxies = append(proxies, newproxy)
 	}
