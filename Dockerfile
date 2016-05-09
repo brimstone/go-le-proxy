@@ -15,6 +15,6 @@ ENV BASE_DOMAIN="" \
 
 COPY identtrust.root.pem /etc/ssl/certs/ca-certificates.crt
 
-COPY go-le-proxy /go-le-proxy
+COPY app /app
 
-ENTRYPOINT ["/go-le-proxy"]
+ENTRYPOINT ["/app"]
