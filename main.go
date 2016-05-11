@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -72,19 +73,7 @@ func singleJoiningSlash(a, b string) string {
 
 // end bulk copy
 
-func main() {
-	var err error
-	// Check our variables
-	// check baseDomain
-	baseDomain := defaultEnvString("BASE_DOMAIN", "", true)
-	// check subdomainSuffix
-	subdomainSuffix := defaultEnvString("SUBDOMAIN_SUFFIX", "", false)
-	if subdomainSuffix != "" {
-		subdomainSuffix = subdomainSuffix + "."
-	}
-
-	// check port
-	port := ":" + defaultEnvString("PORT", "443", false)
+func setupLetsEncrypt(acmedomains []string, address string) (net.Listener, error) {
 
 	// ACME server
 	staging := defaultEnvString("STAGING", "false", false)
@@ -97,6 +86,46 @@ func main() {
 	tlskey := defaultEnvString("TLSKEY", "", false)
 	registration := defaultEnvString("LE_REG", "", false)
 	privatekey := defaultEnvString("LE_PK", "", false)
+
+	// setup Let's Encrypt
+	w, err := acmewrapper.New(acmewrapper.Config{
+		Domains: acmedomains,
+		Address: address,
+
+		TLSCertFile: tlscert,
+		TLSKeyFile:  tlskey,
+
+		// Let's Encrypt stuff
+		RegistrationFile: registration,
+		PrivateKeyFile:   privatekey,
+
+		Server: acmeServer,
+
+		TOSCallback: acmewrapper.TOSAgree,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	ln, err := tls.Listen("tcp", address, w.TLSConfig())
+
+	if err != nil {
+		return nil, err
+	}
+	return ln, nil
+}
+
+func main() {
+	var err error
+	// Check our variables
+	// check baseDomain
+	baseDomain := defaultEnvString("BASE_DOMAIN", "", true)
+	// check subdomainSuffix
+	subdomainSuffix := defaultEnvString("SUBDOMAIN_SUFFIX", "", false)
+	if subdomainSuffix != "" {
+		subdomainSuffix = subdomainSuffix + "."
+	}
 
 	// setup internal variables
 
@@ -135,33 +164,10 @@ func main() {
 	}
 	log.Println(gettingCertsMsg)
 
-	// setup Let's Encrypt
-	w, err := acmewrapper.New(acmewrapper.Config{
-		Domains: acmedomains,
-		Address: port,
+	// check port
+	port := ":" + defaultEnvString("PORT", "443", false)
 
-		TLSCertFile: tlscert,
-		TLSKeyFile:  tlskey,
-
-		// Let's Encrypt stuff
-		RegistrationFile: registration,
-		PrivateKeyFile:   privatekey,
-
-		Server: acmeServer,
-
-		TOSCallback: acmewrapper.TOSAgree,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	ln, err := tls.Listen("tcp", port, w.TLSConfig())
-
-	if err != nil {
-		panic(err)
-	}
-
+	ln, err := setupLetsEncrypt(acmedomains, port)
 	// let's do it
 
 	log.Printf("Now listening on %s\n", port)
