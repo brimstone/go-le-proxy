@@ -37,12 +37,14 @@ func defaultEnvString(envvar string, d string, required bool) string {
 // bulk copy from httputil source
 
 // NewSingleHostReverseProxy returns a new ReverseProxy to a single host
-func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
+func NewSingleHostReverseProxy(host string, target *url.URL) *httputil.ReverseProxy {
 	targetQuery := target.RawQuery
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
 		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
+		req.Header.Set("X-Forwarded-Host", host)
+		req.Header.Set("X-Target", target.String())
 		if targetQuery == "" || req.URL.RawQuery == "" {
 			req.URL.RawQuery = targetQuery + req.URL.RawQuery
 		} else {
@@ -51,7 +53,10 @@ func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	}
 	// We don't care about tls on the inside
 	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+			ServerName:         host,
+		},
 	}
 	return &httputil.ReverseProxy{
 		Director:  director,
@@ -158,7 +163,6 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		newproxy.ProxyHandler = NewSingleHostReverseProxy(newproxy.RemoteURL)
 
 		proxies = append(proxies, newproxy)
 	}
@@ -200,9 +204,8 @@ func handler(proxies []Proxy) func(http.ResponseWriter, *http.Request) {
 			if r.Host != proxy.Subdomain {
 				continue
 			}
-			r.Host = proxy.RemoteURL.Host
 			log.Println(logPrefix + proxy.RemoteURL.String())
-			proxy.ProxyHandler.ServeHTTP(w, r)
+			NewSingleHostReverseProxy(r.Host, proxy.RemoteURL).ServeHTTP(w, r)
 			return
 		}
 		// check path
@@ -216,10 +219,8 @@ func handler(proxies []Proxy) func(http.ResponseWriter, *http.Request) {
 			if err != nil {
 				panic(err)
 			}
-			r.Host = proxy.RemoteURL.Host
 			log.Println(logPrefix + proxy.RemoteURL.String() + pathless)
-			proxy.ProxyHandler.ServeHTTP(w, r)
-			//log.Printf("%#v\n", fakew)
+			NewSingleHostReverseProxy(r.Host, proxy.RemoteURL).ServeHTTP(w, r)
 			return
 		}
 
