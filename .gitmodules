@@ -1,3 +1,0 @@
-[submodule "vendor/github.com/dkumor/acmewrapper"]
-	path = vendor/github.com/dkumor/acmewrapper
-	url = https://github.com/dkumor/acmewrapper
