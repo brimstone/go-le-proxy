@@ -194,6 +194,8 @@ func handler(proxies []Proxy) func(http.ResponseWriter, *http.Request) {
 	fileserver := http.FileServer(http.Dir(dirpath))
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		w.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+
 		// build up our log line
 		logPrefix := r.RemoteAddr
 		logPrefix += " \"" + r.Method
