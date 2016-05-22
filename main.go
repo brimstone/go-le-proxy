@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"log"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dkumor/acmewrapper"
+	"github.com/xenolf/lego/acme"
 )
 
 // Proxy holds information about our different proxies
@@ -78,7 +78,7 @@ func singleJoiningSlash(a, b string) string {
 
 // end bulk copy
 
-func setupLetsEncrypt(acmedomains []string, address string) (net.Listener, error) {
+func setupLetsEncrypt(acmedomains []string, address string) (*tls.Config, error) {
 
 	// ACME server
 	staging := defaultEnvString("STAGING", "false", false)
@@ -103,6 +103,7 @@ func setupLetsEncrypt(acmedomains []string, address string) (net.Listener, error
 		// Let's Encrypt stuff
 		RegistrationFile: registration,
 		PrivateKeyFile:   privatekey,
+		PrivateKeyType:   acme.RSA4096,
 
 		Server: acmeServer,
 
@@ -115,13 +116,17 @@ func setupLetsEncrypt(acmedomains []string, address string) (net.Listener, error
 
 	tlsconfig := w.TLSConfig()
 	tlsconfig.PreferServerCipherSuites = true
-
-	ln, err := tls.Listen("tcp", address, tlsconfig)
-
-	if err != nil {
-		return nil, err
+	tlsconfig.CipherSuites = []uint16{
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
 	}
-	return ln, nil
+	tlsconfig.MinVersion = tls.VersionTLS12
+	tlsconfig.CurvePreferences = []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256}
+
+	return tlsconfig, nil
+
 }
 
 func main() {
@@ -174,16 +179,27 @@ func main() {
 	// check port
 	port := ":" + defaultEnvString("PORT", "443", false)
 
-	ln, err := setupLetsEncrypt(acmedomains, port)
+	tlsconfig, err := setupLetsEncrypt(acmedomains, port)
 	// let's do it
 
 	log.Printf("Now listening on %s\n", port)
 
-	http.HandleFunc("/", handler(proxies))
-	err = http.Serve(ln, nil)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handler(proxies))
+
+	srv := &http.Server{
+		Addr:      port,
+		Handler:   mux,
+		TLSConfig: tlsconfig,
+
+		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+	}
+
+	ln, err := tls.Listen("tcp", port, tlsconfig)
 	if err != nil {
 		panic(err)
 	}
+	log.Fatal(srv.Serve(ln))
 }
 
 func handler(proxies []Proxy) func(http.ResponseWriter, *http.Request) {
