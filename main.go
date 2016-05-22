@@ -113,7 +113,10 @@ func setupLetsEncrypt(acmedomains []string, address string) (net.Listener, error
 		return nil, err
 	}
 
-	ln, err := tls.Listen("tcp", address, w.TLSConfig())
+	tlsconfig := w.TLSConfig()
+	tlsconfig.PreferServerCipherSuites = true
+
+	ln, err := tls.Listen("tcp", address, tlsconfig)
 
 	if err != nil {
 		return nil, err
