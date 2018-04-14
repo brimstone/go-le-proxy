@@ -9,8 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dkumor/acmewrapper"
-	"github.com/xenolf/lego/acme"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 // Proxy holds information about our different proxies
@@ -81,50 +80,44 @@ func singleJoiningSlash(a, b string) string {
 func setupLetsEncrypt(acmedomains []string, address string) (*tls.Config, error) {
 
 	// ACME server
-	staging := defaultEnvString("STAGING", "false", false)
-	acmeServer := "https://acme-v01.api.letsencrypt.org/directory"
-	if staging == "true" {
-		acmeServer = "https://acme-staging.api.letsencrypt.org/directory"
-	}
-	// Setup variables for the cert and whatnot
-	tlscert := defaultEnvString("TLSCERT", "", false)
-	tlskey := defaultEnvString("TLSKEY", "", false)
-	registration := defaultEnvString("LE_REG", "", false)
-	privatekey := defaultEnvString("LE_PK", "", false)
+	/*
+		staging := defaultEnvString("STAGING", "false", false)
+		acmeServer := "https://acme-v01.api.letsencrypt.org/directory"
+		if staging == "true" {
+			acmeServer = "https://acme-staging.api.letsencrypt.org/directory"
+		}
+		// Setup variables for the cert and whatnot
+		tlscert := defaultEnvString("TLSCERT", "", false)
+		tlskey := defaultEnvString("TLSKEY", "", false)
+		registration := defaultEnvString("LE_REG", "", false)
+		privatekey := defaultEnvString("LE_PK", "", false)
+	*/
 
 	// setup Let's Encrypt
-	w, err := acmewrapper.New(acmewrapper.Config{
-		Domains: acmedomains,
-		Address: address,
-
-		TLSCertFile: tlscert,
-		TLSKeyFile:  tlskey,
-
-		// Let's Encrypt stuff
-		RegistrationFile: registration,
-		PrivateKeyFile:   privatekey,
-		PrivateKeyType:   acme.RSA4096,
-
-		Server: acmeServer,
-
-		TOSCallback: acmewrapper.TOSAgree,
-	})
-
-	if err != nil {
-		return nil, err
+	m := autocert.Manager{
+		Cache:      autocert.DirCache("/certs"),
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: autocert.HostWhitelist(acmedomains...),
 	}
 
-	tlsconfig := w.TLSConfig()
-	tlsconfig.PreferServerCipherSuites = true
-	tlsconfig.CipherSuites = []uint16{
-		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	srv := &http.Server{
+		Addr:    ":80",
+		Handler: m.HTTPHandler(nil),
 	}
-	tlsconfig.MinVersion = tls.VersionTLS12
-	tlsconfig.CurvePreferences = []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256}
+	go srv.ListenAndServe()
 
+	tlsconfig := &tls.Config{
+		GetCertificate:           m.GetCertificate,
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		},
+		MinVersion:       tls.VersionTLS12,
+		CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+	}
 	return tlsconfig, nil
 
 }

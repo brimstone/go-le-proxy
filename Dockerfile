@@ -13,7 +13,7 @@ ENV BASE_DOMAIN="" \
     TLSCERT="/certs/cert.pem" \
     TLSKEY="/certs/key.pem"
 
-COPY identtrust.root.pem /etc/ssl/certs/ca-certificates.crt
+COPY DSTRootCAX3.crt /etc/ssl/certs/ca-certificates.crt
 
 COPY app /app
 
